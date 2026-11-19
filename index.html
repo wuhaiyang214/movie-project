@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Team 6 Movie Search</title>
+<style>
+  body { margin: 0; background: #f2f4f7; font-family: "Segoe UI", Arial, sans-serif; color: #222; }
+  header { background: #1e3a5f; color: #fff; padding: 18px 40px; display: flex; align-items: center; justify-content: space-between; }
+  header h1 { margin: 0; font-size: 22px; }
+  header nav a { color: #cfe0f5; margin-left: 24px; text-decoration: none; font-size: 15px; }
+  header nav a.active { color: #fff; font-weight: bold; border-bottom: 2px solid #fff; padding-bottom: 3px; }
+  .container { max-width: 1100px; margin: 30px auto; padding: 0 16px; }
+  .intro { margin-bottom: 20px; }
+  .intro h2 { margin: 0 0 6px; font-size: 24px; }
+  .intro p { margin: 0; color: #555; }
+  .box { background: #fff; border: 1px solid #dde2e8; border-radius: 8px; padding: 20px; margin-bottom: 20px; }
+  form { display: flex; gap: 16px; align-items: flex-end; flex-wrap: wrap; }
+  label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 5px; }
+  select, input { padding: 8px 10px; border: 1px solid #bbb; border-radius: 5px; font-size: 15px; width: 150px; background: #fff; box-sizing: border-box; }
+  button, .button { background: #2f6fdb; color: #fff; border: none; padding: 10px 22px; border-radius: 5px; font-size: 15px; cursor: pointer; text-decoration: none; display: inline-block; font-family: inherit; }
+  button:hover, .button:hover { background: #255bb8; }
+  .secondary { background: #e8ecf1; color: #333; }
+  .secondary:hover { background: #d9dfe6; }
+  button:disabled { background: #e8ecf1; color: #aaa; cursor: default; }
+  .results-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .results-top h3 { margin: 0; font-size: 18px; }
+  .results-top span { color: #666; font-size: 14px; }
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 15px; }
+  th { background: #eef2f7; text-align: left; padding: 10px; border-bottom: 2px solid #d0d7e0; white-space: nowrap; }
+  td { padding: 10px; border-bottom: 1px solid #e5e8ec; }
+  tr:nth-child(even) td { background: #fafbfc; }
+  .rating { font-weight: bold; color: #1a7f37; white-space: nowrap; }
+  .genre { display: inline-block; background: #e3ecfa; color: #2f5597; font-size: 12px; padding: 2px 7px; border-radius: 10px; margin: 1px 2px; }
+  .muted { color: #999; }
+  .message { padding: 30px; text-align: center; color: #666; }
+  .error { background: #fdecec; color: #a12622; border: 1px solid #f5c2c0; border-radius: 6px; padding: 12px; margin-bottom: 12px; display: none; }
+  .pager { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+  .pager button { padding: 7px 14px; font-size: 14px; }
+  footer { text-align: center; color: #777; font-size: 13px; padding: 10px 0 30px; }
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible { outline:3px solid #b36800; outline-offset:3px; }
+@media(max-width:600px){header{padding:18px 16px;align-items:flex-start;gap:15px;flex-direction:column}header nav a{margin-left:0;margin-right:18px}form>div{flex:1 1 140px}select,input{width:100%}.results-top{gap:12px;align-items:flex-start}.box{padding:16px}}
+</style>
+</head>
+<body>
+<header>
+  <h1>🎬 Team 6 Movie Search</h1>
+  <nav><a class="active" href="index.html">Search</a><a href="docs.html">API Docs</a><a href="about.html">Project &amp; team</a></nav>
+</header>
+
+<div class="container">
+  <div class="intro">
+    <h2>Find movies by genre</h2>
+    <p>Search <span id="movie-count">all</span> movies using MovieLens ratings, TMDb popularity and Wikidata directors.</p>
+  </div>
+
+  <div class="box">
+    <form id="search-form">
+      <div><label for="genre">Genre</label><select id="genre" required></select></div>
+      <div><label for="min-rating">Min average rating</label><input id="min-rating" type="number" min="0" max="5" step="0.5" value="4"></div>
+      <div><label for="min-count">Min number of ratings</label><input id="min-count" type="number" min="0" step="1" value="50"></div>
+      <div><label for="sort">Sort by</label>
+        <select id="sort"><option value="rating">Rating</option><option value="popularity">Popularity</option></select></div>
+      <div><button type="submit">Search</button></div>
+      <div><a id="csv-link" class="button secondary" href="#">Download CSV</a></div>
+    </form>
+  </div>
+
+  <div class="box">
+    <div id="error" class="error"></div>
+    <div class="results-top"><h3>Results</h3><span id="summary"></span></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>#</th><th>Title</th><th>Year</th><th>Genres</th><th>Director</th><th>Avg Rating</th><th>Ratings</th><th>Popularity</th></tr></thead>
+        <tbody id="results"><tr><td colspan="8" class="message">Loading…</td></tr></tbody>
+      </table>
+    </div>
+    <div class="pager">
+      <button id="prev" class="secondary" disabled>Previous</button>
+      <button id="next" disabled>Next</button>
+    </div>
+  </div>
+</div>
+
+<p class="container" style="font-size:13px;color:#666;margin:0 auto 15px">Hosted project demo · Original search interface by Nelson Yanes-Nunez. Uses the submitted dataset in your browser. The original Docker project includes FastAPI, PostgreSQL, and the refresh pipeline. <a href="about.html">Project details and contributions</a>.</p>
+<footer id="footer">Data: MovieLens, TMDb, Wikidata · Team 6 Movie Data Pipeline</footer>
+
+<script type="module">
+import { projectQuery } from "./assets/browser-api.js";
+const PAGE_SIZE = 20;
+let offset = 0;
+
+// Escape text before putting it into the page (some titles contain & or <)
+function escapeHtml(text) {
+  const div = document.createElement("div");
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+// Build the query string from the form
+function searchParams(extra) {
+  const params = new URLSearchParams({
+    genre: document.getElementById("genre").value,
+    min_average_rating: document.getElementById("min-rating").value || 0,
+    min_rating_count: document.getElementById("min-count").value || 0,
+    sort: document.getElementById("sort").value,
+  });
+  for (const key in extra) params.set(key, extra[key]);
+  return params.toString();
+}
+
+function showError(message) {
+  const box = document.getElementById("error");
+  box.textContent = message;
+  box.style.display = message ? "block" : "none";
+}
+
+async function loadGenres() {
+  const response = await projectQuery("/genres");
+  const genres = await response.json();
+  const select = document.getElementById("genre");
+  select.innerHTML = genres.map(g => `<option value="${escapeHtml(g)}">${escapeHtml(g)}</option>`).join("");
+  select.value = genres.includes("Sci-Fi") ? "Sci-Fi" : genres[0];
+}
+
+async function loadMovieCount() {
+  try {
+    const response = await projectQuery("/health");
+    const data = await response.json();
+    if (data.movies) document.getElementById("movie-count").textContent = data.movies.toLocaleString("en-US");
+  } catch (e) { /* not important for the page */ }
+}
+
+async function search() {
+  showError("");
+  const tbody = document.getElementById("results");
+  tbody.innerHTML = '<tr><td colspan="8" class="message">Loading…</td></tr>';
+  document.getElementById("csv-link").href = "/movies?" + searchParams({ format: "csv", limit: 100, offset: 0 });
+
+  const response = await projectQuery("/movies?" + searchParams({ limit: PAGE_SIZE, offset: offset }));
+  const data = await response.json();
+
+  if (!response.ok) {
+    // 400 = unknown genre, 422 = invalid number
+    const detail = data.detail && data.detail.error ? data.detail.error : "Please check the search values (rating 0–5, count 0 or more).";
+    showError(detail);
+    tbody.innerHTML = '<tr><td colspan="8" class="message">No results.</td></tr>';
+    document.getElementById("summary").textContent = "";
+    document.getElementById("prev").disabled = true;
+    document.getElementById("next").disabled = true;
+    return;
+  }
+
+  if (data.results.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="8" class="message">No movies match these filters. Try a lower rating or count.</td></tr>';
+  } else {
+    tbody.innerHTML = data.results.map((m, i) => `
+      <tr>
+        <td>${offset + i + 1}</td>
+        <td>${escapeHtml(m.title)}</td>
+        <td>${m.release_year ?? '<span class="muted">–</span>'}</td>
+        <td>${m.genres.map(g => `<span class="genre">${escapeHtml(g)}</span>`).join("")}</td>
+        <td>${m.directors.length ? escapeHtml(m.directors.join(", ")) : '<span class="muted">Unknown</span>'}</td>
+        <td class="rating">${m.average_rating !== null ? "★ " + m.average_rating.toFixed(2) : '<span class="muted">No ratings</span>'}</td>
+        <td>${m.rating_count}</td>
+        <td>${m.popularity !== null ? m.popularity.toFixed(1) : '<span class="muted">–</span>'}</td>
+      </tr>`).join("");
+    const snapshot = data.results.find(m => m.popularity_snapshot_date);
+    if (snapshot) document.getElementById("footer").textContent =
+      `Data: MovieLens, TMDb, Wikidata · TMDb popularity as of ${snapshot.popularity_snapshot_date} · Team 6 Movie Data Pipeline`;
+  }
+
+  const last = offset + data.results.length;
+  document.getElementById("summary").textContent =
+    data.total === 0 ? "0 movies" : `Showing ${offset + 1}–${last} of ${data.total} movies`;
+  document.getElementById("prev").disabled = offset === 0;
+  document.getElementById("next").disabled = last >= data.total;
+}
+
+document.getElementById("search-form").addEventListener("submit", event => {
+  event.preventDefault();
+  offset = 0;
+  search();
+});
+document.getElementById("prev").addEventListener("click", () => { offset = Math.max(0, offset - PAGE_SIZE); search(); });
+document.getElementById("next").addEventListener("click", () => { offset += PAGE_SIZE; search(); });
+
+document.getElementById("csv-link").addEventListener("click",async event=>{event.preventDefault();try{const response=await projectQuery("/movies?"+searchParams({format:"csv",limit:100,offset:0}));if(!response.ok)throw new Error("Please check the filters before downloading.");const url=URL.createObjectURL(await response.blob());const a=document.createElement("a");a.href=url;a.download="movies.csv";a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}catch(error){showError(error.message);}});
+loadMovieCount();
+loadGenres().then(search).catch(() => showError("Could not reach the API. Is the database running?"));
+</script>
+</body>
+</html>
